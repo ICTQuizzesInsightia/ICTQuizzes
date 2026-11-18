@@ -1895,6 +1895,37 @@ const EXAM = {
   }
 };
 
+/* A dialog stays on top of the window that opened it (like in Windows), so a click on
+   the Personalization or Control Panel window can never hide the open dialog. */
+const _g3effect = effect;
+effect = function(id, el, pos){
+  const r = _g3effect.apply(this, arguments);
+  if (typeof id==='string' && id.startsWith('focus-')) ({pers:['bgwin','ssdlg'], cp:['dt']}[id.slice(6)]||[]).forEach(k=>{ if (findWin(k)) front(k); });
+  return r;
+};
+
+/* Windows has more than one way to do the same thing: the right-click menu, the Organize
+   menu, F2 and the Delete key. Every way counts, and opening a menu is never a mistake. */
+const _g3act = act;
+act = function(id, el, pos){
+  const e = (M && !busy && typeof expected==='function') ? expected() : null;
+  if (e && id!==e){
+    const nx = M.steps[M.i+1] ? M.steps[M.i+1][0] : '';
+    const shut = ()=>{ SIM.ctx=null; SIM.orgMenu=false; };
+    if (e==='org' && nx.startsWith('org-')){                        /* book way: Organize › … */
+      if (id.startsWith('rclick-') || id==='pane-right'){ effect(id, el, pos); renderSim(); return; }
+      if (id==='ctx-'+nx.slice(4) || id===nx){ shut(); _g3act('org'); return _g3act(nx); }
+    }
+    if (e.startsWith('org-') && id==='ctx-'+e.slice(4)){ shut(); SIM.orgMenu=true; return _g3act(e); }
+    if (e.startsWith('rclick-') && nx.startsWith('ctx-')){         /* book way: right-click › … */
+      if (id==='org'){ effect(id, el, pos); renderSim(); return; }
+      if (id==='org-'+nx.slice(4) && SIM.expSel===e.slice(7)){ shut(); _g3act(e); return _g3act(nx); }
+    }
+    if (e.startsWith('ctx-') && id==='org-'+e.slice(4)){ shut(); SIM.ctx={type:'item',id:SIM.expSel,x:300,y:150}; return _g3act(e); }
+  }
+  return _g3act(id, el, pos);
+};
+
 /* ===== TEACHER SETTINGS (built into every quiz file) =====
    SHEET: the Google Apps Script web app link (ends with /exec). Empty = marks stay on each device.
    SCHEDULE: when each grade may take the quiz. Days: 0=Sun 1=Mon 2=Tue 3=Wed 4=Thu 5=Fri 6=Sat.
@@ -1907,6 +1938,7 @@ const QUIZ_SETTINGS = {
          {cls:'1B', date:'2026-11-15', from:'15:00', to:'24:00'},    /* Sunday   */
          {cls:'1A', date:'2026-11-19', from:'15:00', to:'24:00'} ],  /* Thursday */
     2: [ {date:'2026-11-12', from:'00:00', to:'24:00'}, {date:'2026-11-13', from:'00:00', to:'24:00'},
+         {date:'2026-11-18', from:'00:00', to:'24:00'},    /* extra: Wed 18 Nov, rest of the day, both classes */
          {cls:'2A', date:'2026-11-16', from:'15:00', to:'24:00'},    /* Monday   */
          {cls:'2B', date:'2026-11-17', from:'15:00', to:'24:00'} ],  /* Tuesday  */
     3: [ {date:'2026-11-12', from:'00:00', to:'24:00'}, {date:'2026-11-13', from:'00:00', to:'24:00'},
