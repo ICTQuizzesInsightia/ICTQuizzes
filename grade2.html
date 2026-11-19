@@ -1342,7 +1342,7 @@ applyToggles(); updateStars(); viewHome();
 /* ===== GRADE 2 ICT QUIZ: short practical tasks, 25 marks, new mix every time (book pages 10–19) ===== */
 function sumMission(a,b){
   const k='sum'+a+b;
-  if (!MISSIONS[k]) MISSIONS[k] = {title:'Calculator', page:[17,18], start:'desk', steps:[
+  if (!MISSIONS[k]) MISSIONS[k] = {title:'Calculator', sum:a+b, page:[17,18], start:'desk', steps:[
     ['start','','Start',''],['allprog','','All Programs',''],['acc','','Accessories',''],['app-calc','','Calculator',''],
     ['key-'+a,'',''+a,''],['key-+','','+',''],['key-'+b,'',''+b,''],['key-=','','=',''],['x-calc','','Close','']]};
   return k;
@@ -1913,6 +1913,34 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape' && TP) teacherClose
 
 /* go */
 exWelcome();
+
+/* ---------- Calculator: the keys always work like a real calculator ----------
+   A child sees every key that was pressed and can fix a slip with C. The task is done when
+   the last keys are a + b = (or b + a =) and the display shows the answer. Each extra key press costs one mark of the four. */
+if (typeof calcKey==='function'){
+  const _calcClick = onSimClick;
+  onSimClick = function(e){
+    const ck = e.target && e.target.closest && e.target.closest('[data-calc]');
+    if (!ck || !M || !EXON) return _calcClick(e);
+    exCalcTap(ck.dataset.calc);
+  };
+}
+function exCalcTap(k){
+  const m=M, D=MISSIONS[m.key]||{};
+  const keys = m.steps.map((s,j)=>[s[0],j]).filter(x=>x[0].startsWith('key-'));
+  const inPhase = D.sum!=null && keys.length && m.i>=keys[0][1] && m.i<=keys[keys.length-1][1];
+  calcKey(k);
+  if (!inPhase){ m.miss++; return; }                  /* calculator used at the wrong time: counted, but it still works */
+  m._presses = (m._presses||0) + 1;
+  m._seq = (m._seq||[]).concat(k);
+  if (k!=='=') return;
+  const want = keys.map(x=>x[0].slice(4)), alt=[want[2],want[1],want[0],want[3]], s=m._seq.slice(-keys.length).join(' ');
+  if ((s!==want.join(' ') && s!==alt.join(' ')) || Number(calc.cur)!==D.sum) return;
+  let extra = m._presses - keys.length;
+  const real = calcKey; calcKey = function(){};       /* the display already shows the answer */
+  try { while (M===m && expected() && expected().startsWith('key-')){ if (extra>0){ m.miss++; extra--; } _act(expected()); } }
+  finally { calcKey = real; }
+}
 
 </script>
 </body></html>
